@@ -1,0 +1,28 @@
+from enum import StrEnum
+
+
+class OperationStatus(StrEnum):
+    CREATED = "CREATED"
+    PROCESSING = "PROCESSING"
+    COMPLETED = "COMPLETED"
+    REJECTED = "REJECTED"
+
+
+class SubmissionIntentStatus(StrEnum):
+    PENDING = "PENDING"
+    IN_FLIGHT = "IN_FLIGHT"
+    RETRY_WAIT = "RETRY_WAIT"
+    ACCEPTED = "ACCEPTED"
+    RESOLVED = "RESOLVED"
+    EXHAUSTED = "EXHAUSTED"
+
+
+class ReceiptResult(StrEnum):
+    COMPLETED = "COMPLETED"
+    REJECTED = "REJECTED"
+
+
+class ReceiptDisposition(StrEnum):
+    APPLIED = "APPLIED"
+    IGNORED_ALREADY_FINAL = "IGNORED_ALREADY_FINAL"
+    IGNORED_CONFLICTING_RESULT = "IGNORED_CONFLICTING_RESULT"
