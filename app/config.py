@@ -26,6 +26,16 @@ class Settings(BaseSettings):
         validation_alias="DATABASE_URL",
     )
 
+    provider_url: str = Field(
+        default="http://provider-simulator:8081",
+        validation_alias="PROVIDER_URL",
+    )
+    provider_timeout_seconds: float = Field(
+        default=5.0,
+        gt=0,
+        validation_alias="PROVIDER_TIMEOUT",
+    )
+
     @field_validator("log_level")
     @classmethod
     def normalize_log_level(cls, value: str) -> str:
