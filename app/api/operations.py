@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_session
@@ -11,6 +11,7 @@ from app.services.operations import (
     create_operation,
     get_operation,
     get_operation_events,
+    submit_operation,
 )
 
 router = APIRouter(prefix="/operations", tags=["operations"])
@@ -31,6 +32,25 @@ async def post_operation(
         ) from error
     return OperationResponse.model_validate(operation)
 
+
+@router.post("/{operation_id}/submit", response_model=OperationResponse)
+async def submit_existing_operation(
+    operation_id: str,
+    response: Response,
+    session: SessionDependency,
+) -> OperationResponse:
+    try:
+        result = await submit_operation(session, operation_id)
+    except OperationNotFoundError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Operation not found",
+        ) from error
+
+    response.status_code = (
+        status.HTTP_202_ACCEPTED if result.submitted else status.HTTP_200_OK
+    )
+    return OperationResponse.model_validate(result.operation)
 
 @router.get("/{operation_id}", response_model=OperationResponse)
 async def read_operation(
