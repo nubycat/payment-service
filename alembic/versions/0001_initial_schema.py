@@ -188,7 +188,7 @@ def upgrade() -> None:
         ),
         sa.CheckConstraint(
             "jsonb_typeof(request_payload) = 'object' "
-            "AND jsonb_object_length(request_payload) = 3 "
+            "AND request_payload - ARRAY['operationId', 'amount', 'currency'] = '{}'::jsonb "
             "AND request_payload ?& ARRAY['operationId', 'amount', 'currency'] "
             "AND request_payload ->> 'operationId' = operation_id "
             "AND request_payload ->> 'currency' = 'RUB'",
@@ -358,7 +358,8 @@ def upgrade() -> None:
         ),
         sa.CheckConstraint(
             "jsonb_typeof(raw_payload) = 'object' "
-            "AND jsonb_object_length(raw_payload) = 5 "
+            "AND raw_payload - ARRAY["
+            "'operationId', 'providerPaymentId', 'result', 'message', 'occurredAt'] = '{}'::jsonb "
             "AND raw_payload ?& ARRAY["
             "'operationId', 'providerPaymentId', 'result', 'message', 'occurredAt'] "
             "AND raw_payload ->> 'operationId' = operation_id "
