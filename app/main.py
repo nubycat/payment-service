@@ -3,6 +3,7 @@ import logging
 from fastapi import FastAPI
 
 from app.api.health import router as health_router
+from app.api.operations import router as operations_router
 from app.config import Settings, get_settings
 from app.logging_config import configure_logging
 
@@ -16,6 +17,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     application = FastAPI(title=current_settings.name, version="0.1.0")
     application.state.settings = current_settings
     application.include_router(health_router)
+    application.include_router(operations_router)
 
     logger.info(
         "Application configured",
