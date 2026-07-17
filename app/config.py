@@ -35,6 +35,11 @@ class Settings(BaseSettings):
         gt=0,
         validation_alias="PROVIDER_TIMEOUT",
     )
+    dispatch_polling_interval_seconds: float = Field(
+        default=1.0,
+        gt=0,
+        validation_alias="DISPATCH_POLLING_INTERVAL",
+    )
 
     @field_validator("log_level")
     @classmethod
