@@ -2,9 +2,16 @@ import re
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 
-from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
+from pydantic import (
+    AwareDatetime,
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_serializer,
+    field_validator,
+)
 
-from app.enums import OperationStatus
+from app.enums import OperationStatus, ReceiptResult
 
 _AMOUNT_PATTERN = re.compile(r"^\d+(?:\.\d{1,2})?$")
 
@@ -71,3 +78,20 @@ class OperationEventResponse(BaseModel):
     to_status: OperationStatus = Field(alias="toStatus")
     message: str
     occurred_at: datetime = Field(alias="occurredAt")
+
+
+class ReceiptCreate(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
+
+    provider_payment_id: str = Field(alias="providerPaymentId", min_length=1)
+    operation_id: str = Field(alias="operationId", min_length=1, max_length=128)
+    result: ReceiptResult
+    message: str
+    occurred_at: AwareDatetime = Field(alias="occurredAt")
+
+    @field_validator("operation_id", "provider_payment_id")
+    @classmethod
+    def validate_identifier(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("identifier must not be blank")
+        return value
