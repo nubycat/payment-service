@@ -5,12 +5,22 @@ services:
     environment:
       APP_ENVIRONMENT: production
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/candidate
+      PROVIDER_URL: http://provider-simulator:8081
     ports:
       - "8080:8080"
     depends_on:
       postgres:
         condition: service_healthy
     restart: unless-stopped
+
+  provider-simulator:
+    image: ghcr.io/fintech-dev-lab/internship-provider-simulator:v0.2.0
+    environment:
+      CALLBACK_URL: http://candidate-service:8080/receipts
+    ports:
+      - 8081:8081
+    depends_on:
+      - candidate-service
 
   postgres:
     image: postgres:17-alpine
