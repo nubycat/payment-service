@@ -11,6 +11,7 @@ from app.api.receipts import router as receipts_router
 from app.config import Settings, get_settings
 from app.database import async_session_factory, close_engine
 from app.logging_config import configure_logging
+from app.services.dispatch import recover_submission_intents
 from app.worker.dispatcher import DispatchWorker
 
 logger = logging.getLogger(__name__)
@@ -19,6 +20,7 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(application: FastAPI) -> AsyncIterator[None]:
     settings: Settings = application.state.settings
+    await recover_submission_intents(async_session_factory)
     worker = DispatchWorker(
         session_factory=async_session_factory,
         settings=settings,

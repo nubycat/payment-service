@@ -4,10 +4,10 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import and_, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.enums import SubmissionIntentStatus
+from app.enums import OperationStatus, SubmissionIntentStatus
 from app.models import Operation, SubmissionIntent
 from app.provider.client import (
     NonRetryableProviderError,
@@ -56,6 +56,40 @@ def retry_delay(
         delay_seconds = base_delay * (0.8 + 0.4 * random_value)
 
     return timedelta(seconds=min(delay_seconds, _MAX_RETRY_DELAY_SECONDS))
+
+
+async def recover_submission_intents(
+    session_factory: SessionFactory,
+    *,
+    now_factory: Callable[[], datetime] | None = None,
+) -> int:
+    now = (now_factory or _utc_now)()
+    processing_operation_ids = select(Operation.operation_id).where(
+        Operation.status == OperationStatus.PROCESSING
+    )
+
+    async with session_factory() as session, session.begin():
+        statement = (
+            update(SubmissionIntent)
+            .where(
+                SubmissionIntent.operation_id.in_(processing_operation_ids),
+                SubmissionIntent.status.in_(
+                    (
+                        SubmissionIntentStatus.IN_FLIGHT,
+                        SubmissionIntentStatus.ACCEPTED,
+                    )
+                ),
+            )
+            .values(
+                status=SubmissionIntentStatus.RETRY_WAIT,
+                next_attempt_at=now,
+                lease_until=None,
+                updated_at=now,
+            )
+        )
+        result = await session.execute(statement)
+
+    return result.rowcount
 
 
 async def process_one_intent(
@@ -169,9 +203,7 @@ async def _lock_current_intent(
     claim: ClaimedIntent,
 ) -> SubmissionIntent | None:
     intent = await session.scalar(
-        select(SubmissionIntent)
-        .where(SubmissionIntent.id == claim.intent_id)
-        .with_for_update()
+        select(SubmissionIntent).where(SubmissionIntent.id == claim.intent_id).with_for_update()
     )
     if (
         intent is None
@@ -195,9 +227,7 @@ async def _finalize_accepted(
             return
 
         operation = await session.scalar(
-            select(Operation)
-            .where(Operation.operation_id == claim.operation_id)
-            .with_for_update()
+            select(Operation).where(Operation.operation_id == claim.operation_id).with_for_update()
         )
         if operation is None:
             _block_intent(intent, "Operation disappeared during dispatch", now=now)
